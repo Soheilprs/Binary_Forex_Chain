@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract Forex_Training_3 is Context, ReentrancyGuard {
+contract Forex_Training is Context, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     struct Node {
@@ -15,8 +15,6 @@ contract Forex_Training_3 is Context, ReentrancyGuard {
         uint256 NumberOfChildNodeOnRight;
         uint256 numberOfChildNodeOnLeftForOneDay;
         uint256 numberOfChildNodeOnRightForOneDay;
-        uint256 remainingUserLeftChildYesterday;
-        uint256 remainingUserRightChildYesterday;
         uint256 NumberOfBalancedCalculated;
         uint256 TotalUserRewarded;
         uint256 NumberOfNewBalanced;
@@ -64,8 +62,6 @@ contract Forex_Training_3 is Context, ReentrancyGuard {
             NumberOfChildNodeOnRight: 0,
             numberOfChildNodeOnLeftForOneDay: 0,
             numberOfChildNodeOnRightForOneDay: 0,
-            remainingUserLeftChildYesterday: 0,
-            remainingUserRightChildYesterday: 0,
             NumberOfBalancedCalculated: 0,
             TotalUserRewarded: 0,
             NumberOfNewBalanced: 0,
@@ -88,6 +84,12 @@ contract Forex_Training_3 is Context, ReentrancyGuard {
     function Calculating_Rewards_In_24_Hours() public {
         require(block.timestamp > lastRun + 2 minutes, "The Calculating_Node_Rewards_In_24_Hours Time Has Not Come");
 
+        uint256 currentUserLeftNode;
+        uint256 currentUserRightNode;
+
+        uint256 remainingUserLeftChildYesterday;
+        uint256 remainingUserRightChildYesterday;
+
         uint256 totalNormalUserBalanced = 0;
         uint256 totalExcessBalances = 0;
         uint256 maxBalancedCap = 10;
@@ -97,7 +99,10 @@ contract Forex_Training_3 is Context, ReentrancyGuard {
             address currentUser = _usersAddresses[i];
             uint256 leftCount = _users[currentUser].numberOfChildNodeOnLeftForOneDay;
             uint256 rightCount = _users[currentUser].numberOfChildNodeOnRightForOneDay;
+            // currentUserLeftNode = _users[currentUser].numberOfChildNodeOnLeftForOneDay;
+            // currentUserRightNode = _users[currentUser].numberOfChildNodeOnLeftForOneDay;
             uint256 balancedCount = min(leftCount, rightCount);
+            // uint256 balancedCount = min(currentUserLeftNode, currentUserRightNode);
 
             if (currentUser != owner) {
                 if (balancedCount > maxBalancedCap) {
@@ -112,18 +117,16 @@ contract Forex_Training_3 is Context, ReentrancyGuard {
 
         for (uint256 i = 0; i < _usersAddresses.length; i++) {
             address currentUser = _usersAddresses[i];
-            uint256 TodayAndYesterdayLeftChilds = _users[currentUser].numberOfChildNodeOnLeftForOneDay
-                + _users[currentUser].remainingUserLeftChildYesterday;
-            uint256 TodayAndYesterdayRightChilds = _users[currentUser].numberOfChildNodeOnRightForOneDay
-                + _users[currentUser].remainingUserRightChildYesterday;
-
             uint256 userReward;
             uint256 currentUserBalanced;
 
             if (currentUser == owner) {
                 userReward = ownerBalanced * rewardPerBalanced;
             } else {
-                currentUserBalanced = min(TodayAndYesterdayLeftChilds, TodayAndYesterdayRightChilds);
+                currentUserBalanced = min(
+                    currentUserLeftNode + remainingUserLeftChildYesterday,
+                    currentUserRightNode + remainingUserRightChildYesterday
+                );
                 userReward = currentUserBalanced * rewardPerBalanced;
             }
 
@@ -132,27 +135,35 @@ contract Forex_Training_3 is Context, ReentrancyGuard {
             }
 
             _users[currentUser].RewardAmountNotReleased += userReward;
-
-            // Reset counts and save any remaining children for the next day
-            if (TodayAndYesterdayLeftChilds > TodayAndYesterdayRightChilds) {
-                _users[currentUser].remainingUserLeftChildYesterday =
-                    TodayAndYesterdayLeftChilds - TodayAndYesterdayRightChilds;
-                _users[currentUser].remainingUserRightChildYesterday = 0;
-            } else {
-                _users[currentUser].remainingUserRightChildYesterday =
-                    TodayAndYesterdayRightChilds - TodayAndYesterdayLeftChilds;
-                _users[currentUser].remainingUserLeftChildYesterday = 0;
-            }
-
-            // Reset daily counts to 0 after carrying over remaining children
-            _users[currentUser].numberOfChildNodeOnLeftForOneDay = 0;
-            _users[currentUser].numberOfChildNodeOnRightForOneDay = 0;
         }
 
         newUsersInADay = 0;
         lastRun = block.timestamp;
         numberOfRegisteredUsersIn_24Hours = 0;
         numberOfNewBalanceIn_24Hours = 0;
+
+        for (uint256 i = 0; i < _usersAddresses.length; i++) {
+            address currentUser = _usersAddresses[i];
+            // currentUserLeftNode = _users[currentUser].numberOfChildNodeOnLeftForOneDay;
+            // currentUserRightNode = _users[currentUser].numberOfChildNodeOnRightForOneDay;
+
+            uint256 leftNodes = _users[currentUser].numberOfChildNodeOnLeftForOneDay;
+            uint256 RightNodes = _users[currentUser].numberOfChildNodeOnRightForOneDay;
+
+            if (currentUserLeftNode == currentUserRightNode) {
+                // currentUserLeftNode = 0;
+                // currentUserRightNode = 0;
+                leftNodes = 0;
+                RightNodes = 0;
+            } else {
+                remainingUserLeftChildYesterday =
+                    currentUserLeftNode > currentUserRightNode ? currentUserLeftNode - currentUserRightNode : 0;
+                remainingUserRightChildYesterday =
+                    currentUserRightNode > currentUserLeftNode ? currentUserRightNode - currentUserLeftNode : 0;
+                leftNodes = 0;
+                RightNodes = 0;
+            }
+        }
     }
 
     function reactivateUser() public {
@@ -165,6 +176,7 @@ contract Forex_Training_3 is Context, ReentrancyGuard {
         tetherToken.safeTransferFrom(_msgSender(), address(this), registerFee);
         tetherToken.safeTransferFrom(_msgSender(), owner, ownerBenefit);
 
+        _users[_msgSender()].TotalUserRewarded = 0;
         _users[_msgSender()].Status = true;
 
         emit UserReactivated(_msgSender());
@@ -181,21 +193,14 @@ contract Forex_Training_3 is Context, ReentrancyGuard {
             return;
         }
 
-        uint256 reward = _users[_msgSender()].RewardAmountNotReleased;
-        uint256 totalReward = _users[_msgSender()].TotalUserRewarded + reward;
-
-        if (totalReward >= 1000 ether) {
-            uint256 overage = totalReward - 1000 ether;
-
-            // Deactivate the user but save the overage
-            _users[_msgSender()].Status = false;
-            _users[_msgSender()].RewardAmountNotReleased = overage; // Save the overage
-            reward = 1000 ether - _users[_msgSender()].TotalUserRewarded; // Adjust reward to withdraw now to up to the limit
-        } else {
-            _users[_msgSender()].RewardAmountNotReleased = 0; // Reset if below threshold
-        }
-
+        uint256 reward;
+        reward = _users[_msgSender()].RewardAmountNotReleased;
         _users[_msgSender()].TotalUserRewarded += reward;
+        _users[_msgSender()].RewardAmountNotReleased = 0;
+
+        if (_users[_msgSender()].TotalUserRewarded >= 1000 ether) {
+            _users[_msgSender()].Status = false;
+        }
 
         tetherToken.safeTransfer(_msgSender(), reward);
 
@@ -253,8 +258,6 @@ contract Forex_Training_3 is Context, ReentrancyGuard {
             NumberOfChildNodeOnRight: 0,
             numberOfChildNodeOnLeftForOneDay: 0,
             numberOfChildNodeOnRightForOneDay: 0,
-            remainingUserLeftChildYesterday: 0,
-            remainingUserRightChildYesterday: 0,
             NumberOfBalancedCalculated: 0,
             TotalUserRewarded: 0,
             NumberOfNewBalanced: 0,
@@ -332,12 +335,18 @@ contract Forex_Training_3 is Context, ReentrancyGuard {
 
         int8 temp_DirectionOfCurrentNodeInUplineNode;
 
-        if (_users[uplineAddress].LeftNode == address(0)) {
-            _users[uplineAddress].LeftNode = oldUserAddress;
-            temp_DirectionOfCurrentNodeInUplineNode = -1;
+        if (uplineAddress == owner) {
+            require(_users[owner].LeftNode == address(0), "Owner can only have one direct subset.");
+            _users[owner].LeftNode = _msgSender();
+            temp_DirectionOfCurrentNodeInUplineNode = 0;
         } else {
-            _users[uplineAddress].RightNode = oldUserAddress;
-            temp_DirectionOfCurrentNodeInUplineNode = 1;
+            if (_users[uplineAddress].LeftNode == address(0)) {
+                _users[uplineAddress].LeftNode = oldUserAddress;
+                temp_DirectionOfCurrentNodeInUplineNode = -1;
+            } else {
+                _users[uplineAddress].RightNode = oldUserAddress;
+                temp_DirectionOfCurrentNodeInUplineNode = 1;
+            }
         }
 
         _users[oldUserAddress] = Node({
@@ -345,8 +354,6 @@ contract Forex_Training_3 is Context, ReentrancyGuard {
             NumberOfChildNodeOnRight: 0,
             numberOfChildNodeOnLeftForOneDay: 0,
             numberOfChildNodeOnRightForOneDay: 0,
-            remainingUserLeftChildYesterday: 0,
-            remainingUserRightChildYesterday: 0,
             NumberOfBalancedCalculated: 0,
             TotalUserRewarded: 0,
             NumberOfNewBalanced: 0,
