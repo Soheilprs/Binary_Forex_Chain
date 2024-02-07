@@ -10,10 +10,10 @@ async function main() {
   const tetherToken = "0xf2C6ccf7A9Bb5A768d29F93D09BF8A1c3b8235e6";
   // const tetherToken = "0x635417D99Fc0855A81CbFeb17E0271145d3cEcD9"; Goerli
 
-  const binaryLandContract = await hre.ethers.deployContract(
-    "Forex_Training_3",
-    [tetherToken, headOfUpline]
-  );
+  const binaryLandContract = await hre.ethers.deployContract("Forex_Training", [
+    tetherToken,
+    headOfUpline,
+  ]);
 
   await binaryLandContract.waitForDeployment();
 
