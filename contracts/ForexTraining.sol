@@ -128,7 +128,8 @@ contract Forex_Training is Context, ReentrancyGuard {
             }
 
             if (totalExcessBalances > 0 && currentUserBalanced < maxBalancedCap) {
-                userReward += (totalExcessBalances * rewardPerBalanced) / totalNormalUserBalanced;
+                // userReward += (totalExcessBalances * rewardPerBalanced) / totalNormalUserBalanced;
+                userReward += (totalExcessBalances * rewardPerBalanced) / totalNormalUserBalanced + newUsersInADay;
             }
 
             _users[currentUser].RewardAmountNotReleased += userReward;
