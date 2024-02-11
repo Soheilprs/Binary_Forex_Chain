@@ -99,13 +99,13 @@ contract Forex_Training is Context, ReentrancyGuard {
             uint256 rightCount = _users[currentUser].numberOfChildNodeOnRightForOneDay;
             uint256 balancedCount = min(leftCount, rightCount);
 
-            if (currentUser != owner) {
-                if (balancedCount > maxBalancedCap) {
-                    totalExcessBalances += (balancedCount - maxBalancedCap);
-                    balancedCount = maxBalancedCap;
-                }
-                totalNormalUserBalanced += balancedCount;
+            // if (currentUser != owner) {
+            if (balancedCount > maxBalancedCap) {
+                totalExcessBalances += (balancedCount - maxBalancedCap);
+                balancedCount = maxBalancedCap;
             }
+            totalNormalUserBalanced += balancedCount;
+            // }
         }
 
         uint256 rewardPerBalanced = Today_Reward_Per_Balance();
