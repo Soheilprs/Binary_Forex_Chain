@@ -333,12 +333,18 @@ contract Forex_Training is Context, ReentrancyGuard {
 
         int8 temp_DirectionOfCurrentNodeInUplineNode;
 
-        if (_users[uplineAddress].LeftNode == address(0)) {
-            _users[uplineAddress].LeftNode = oldUserAddress;
-            temp_DirectionOfCurrentNodeInUplineNode = -1;
+        if (uplineAddress == owner) {
+            require(_users[owner].LeftNode == address(0), "Owner can only have one direct subset.");
+            _users[owner].LeftNode = _msgSender();
+            temp_DirectionOfCurrentNodeInUplineNode = 0;
         } else {
-            _users[uplineAddress].RightNode = oldUserAddress;
-            temp_DirectionOfCurrentNodeInUplineNode = 1;
+            if (_users[uplineAddress].LeftNode == address(0)) {
+                _users[uplineAddress].LeftNode = oldUserAddress;
+                temp_DirectionOfCurrentNodeInUplineNode = -1;
+            } else {
+                _users[uplineAddress].RightNode = oldUserAddress;
+                temp_DirectionOfCurrentNodeInUplineNode = 1;
+            }
         }
 
         _users[oldUserAddress] = Node({
