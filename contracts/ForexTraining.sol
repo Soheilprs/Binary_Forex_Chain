@@ -105,6 +105,7 @@ contract Forex_Training is Context, ReentrancyGuard {
                 totalExcessBalances += (balancedCount - maxBalancedCap);
                 balancedCount = maxBalancedCap;
             }
+            // q - should i put the line 108 in condition or not?
             totalNormalUserBalanced += balancedCount;
             // }
         }
@@ -129,9 +130,7 @@ contract Forex_Training is Context, ReentrancyGuard {
             }
 
             if (totalExcessBalances > 0 && currentUserBalanced < maxBalancedCap) {
-                // userReward += (totalExcessBalances * rewardPerBalanced) / totalNormalUserBalanced;
-                // @audit
-                userReward += (totalExcessBalances * rewardPerBalanced) / totalNormalUserBalanced + ownerBalanced;
+                userReward += (totalExcessBalances * rewardPerBalanced) / totalNormalUserBalanced;
             }
 
             _users[currentUser].RewardAmountNotReleased += userReward;
@@ -160,7 +159,7 @@ contract Forex_Training is Context, ReentrancyGuard {
 
     function reactivateUser() public {
         require(_users[_msgSender()].Status == false, "User is already active or not registered.");
-        // @audit
+        // q - Does the below line compatible with 1000$ reward condition in B_Withdraw?
         require(_users[_msgSender()].TotalUserRewarded >= 1000 ether, "Reactivate condition not met.");
 
         uint256 ownerBenefit = 20 ether;
@@ -450,7 +449,8 @@ contract Forex_Training is Context, ReentrancyGuard {
         return _users[userAddress].RewardAmountNotReleased;
     }
 
-    function Total_User_Reward(address userAddress) public view returns (uint256) {
+    // q - Do we use this function in our other functions?
+    function Total_User_Reward(address userAddress) private view returns (uint256) {
         return _users[userAddress].TotalUserRewarded;
     }
 
