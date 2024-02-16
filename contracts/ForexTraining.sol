@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
@@ -99,6 +99,7 @@ contract Forex_Training is Context, ReentrancyGuard {
             uint256 rightCount = _users[currentUser].numberOfChildNodeOnRightForOneDay;
             uint256 balancedCount = min(leftCount, rightCount);
 
+            // @audit
             // if (currentUser != owner) {
             if (balancedCount > maxBalancedCap) {
                 totalExcessBalances += (balancedCount - maxBalancedCap);
@@ -129,7 +130,8 @@ contract Forex_Training is Context, ReentrancyGuard {
 
             if (totalExcessBalances > 0 && currentUserBalanced < maxBalancedCap) {
                 // userReward += (totalExcessBalances * rewardPerBalanced) / totalNormalUserBalanced;
-                userReward += (totalExcessBalances * rewardPerBalanced) / totalNormalUserBalanced + newUsersInADay;
+                // @audit
+                userReward += (totalExcessBalances * rewardPerBalanced) / totalNormalUserBalanced + ownerBalanced;
             }
 
             _users[currentUser].RewardAmountNotReleased += userReward;
@@ -158,6 +160,7 @@ contract Forex_Training is Context, ReentrancyGuard {
 
     function reactivateUser() public {
         require(_users[_msgSender()].Status == false, "User is already active or not registered.");
+        // @audit
         require(_users[_msgSender()].TotalUserRewarded >= 1000 ether, "Reactivate condition not met.");
 
         uint256 ownerBenefit = 20 ether;
@@ -191,6 +194,7 @@ contract Forex_Training is Context, ReentrancyGuard {
             // Deactivate the user but save the overage
             _users[_msgSender()].Status = false;
             _users[_msgSender()].RewardAmountNotReleased = overage; // Save the overage
+            // @audit
             reward = 1000 ether - _users[_msgSender()].TotalUserRewarded; // Adjust reward to withdraw now to up to the limit
         } else {
             _users[_msgSender()].RewardAmountNotReleased = 0; // Reset if below threshold
