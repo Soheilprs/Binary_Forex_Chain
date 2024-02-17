@@ -99,15 +99,14 @@ contract Forex_Training is Context, ReentrancyGuard {
             uint256 rightCount = _users[currentUser].numberOfChildNodeOnRightForOneDay;
             uint256 balancedCount = min(leftCount, rightCount);
 
-            // @audit
-            // if (currentUser != owner) {
-            if (balancedCount > maxBalancedCap) {
-                totalExcessBalances += (balancedCount - maxBalancedCap);
-                balancedCount = maxBalancedCap;
+            if (currentUser != owner) {
+                if (balancedCount > maxBalancedCap) {
+                    totalExcessBalances += (balancedCount - maxBalancedCap);
+                    balancedCount = maxBalancedCap;
+                }
+                // q - should i put the line 108 in condition or not?
+                totalNormalUserBalanced += balancedCount;
             }
-            // q - should i put the line 108 in condition or not?
-            totalNormalUserBalanced += balancedCount;
-            // }
         }
 
         uint256 rewardPerBalanced = Today_Reward_Per_Balance();
@@ -168,6 +167,7 @@ contract Forex_Training is Context, ReentrancyGuard {
         tetherToken.safeTransferFrom(_msgSender(), address(this), registerFee);
         tetherToken.safeTransferFrom(_msgSender(), owner, ownerBenefit);
 
+        _users[_msgSender()].TotalUserRewarded = 0;
         _users[_msgSender()].Status = true;
 
         emit UserReactivated(_msgSender());
@@ -190,11 +190,10 @@ contract Forex_Training is Context, ReentrancyGuard {
         if (totalReward >= 1000 ether) {
             uint256 overage = totalReward - 1000 ether;
 
-            // Deactivate the user but save the overage
             _users[_msgSender()].Status = false;
             _users[_msgSender()].RewardAmountNotReleased = overage; // Save the overage
             // @audit
-            reward = 1000 ether - _users[_msgSender()].TotalUserRewarded; // Adjust reward to withdraw now to up to the limit
+            reward = 1000 ether - _users[_msgSender()].TotalUserRewarded;
         } else {
             _users[_msgSender()].RewardAmountNotReleased = 0; // Reset if below threshold
         }
@@ -449,9 +448,8 @@ contract Forex_Training is Context, ReentrancyGuard {
         return _users[userAddress].RewardAmountNotReleased;
     }
 
-    // q - Do we use this function in our other functions?
-    function Total_User_Reward(address userAddress) private view returns (uint256) {
-        return _users[userAddress].TotalUserRewarded;
+    function User_Directs_Address(address userAddress) public view returns (address, address) {
+        return (_users[userAddress].LeftNode, _users[userAddress].RightNode);
     }
 
     function Registration_Fee() public view returns (uint256) {
