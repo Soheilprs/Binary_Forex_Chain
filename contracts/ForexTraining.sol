@@ -437,12 +437,12 @@ contract Forex_Training is Context, ReentrancyGuard {
     function Today_Reward_Per_Balance() public view returns (uint256) {
         uint256 todayReward;
         uint256 totalBalancesIncludingOwner = numberOfNewBalanceIn_24Hours + newUsersInADay;
-        uint256 totalRealUsersAndUploadUsers = numberOfRegisteredUsersIn_24Hours + numberOfOldUsersRegisteredIn_24Hour;
+        // uint256 totalRealUsersAndUploadUsers = numberOfRegisteredUsersIn_24Hours + numberOfOldUsersRegisteredIn_24Hour;
 
         if (totalBalancesIncludingOwner == 0) {
             todayReward = 0;
         } else {
-            todayReward = ((80 ether) * totalRealUsersAndUploadUsers) / totalBalancesIncludingOwner;
+            todayReward = ((80 ether) * numberOfRegisteredUsersIn_24Hours) / totalBalancesIncludingOwner;
         }
 
         return todayReward;
@@ -458,6 +458,10 @@ contract Forex_Training is Context, ReentrancyGuard {
 
     function Registration_Fee() public view returns (uint256) {
         return registrationFee;
+    }
+
+    function Total_User_Reward() public view returns (uint256) {
+        return _users[_msgSender()].TotalUserRewarded;
     }
 
     function min(uint256 a, uint256 b) private pure returns (uint256) {
