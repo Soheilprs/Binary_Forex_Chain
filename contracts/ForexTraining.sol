@@ -40,6 +40,7 @@ contract Forex_Training is Context, ReentrancyGuard {
     uint256 private lastRun;
     uint256 private registrationFee;
     uint256 private numberOfRegisteredUsersIn_24Hours;
+    uint256 private numberOfOldUsersRegisteredIn_24Hour;
     uint256 private totalBalance;
     uint256 private numberOfNewBalanceIn_24Hours;
     uint256 private constMaxBalanceForCalculatedReward;
@@ -153,6 +154,7 @@ contract Forex_Training is Context, ReentrancyGuard {
         newUsersInADay = 0;
         lastRun = block.timestamp;
         numberOfRegisteredUsersIn_24Hours = 0;
+        numberOfOldUsersRegisteredIn_24Hour = 0;
         numberOfNewBalanceIn_24Hours = 0;
     }
 
@@ -408,7 +410,8 @@ contract Forex_Training is Context, ReentrancyGuard {
                 temp_UplineAddress = _users[temp_UplineAddress].UplineAddress;
             }
 
-            numberOfRegisteredUsersIn_24Hours += 1;
+            // numberOfRegisteredUsersIn_24Hours += 1;
+            numberOfOldUsersRegisteredIn_24Hour += 1;
         }
 
         _usersAddresses.push(oldUserAddress);
@@ -418,7 +421,7 @@ contract Forex_Training is Context, ReentrancyGuard {
     }
 
     function Today_Contract_Balance() public view returns (uint256) {
-        return IERC20(tetherToken).balanceOf(address(this));
+        return (80 ether) * numberOfRegisteredUsersIn_24Hours;
     }
 
     function All_Time_User_Left_Right(address userAddress) public view returns (uint256, uint256) {
@@ -434,11 +437,12 @@ contract Forex_Training is Context, ReentrancyGuard {
     function Today_Reward_Per_Balance() public view returns (uint256) {
         uint256 todayReward;
         uint256 totalBalancesIncludingOwner = numberOfNewBalanceIn_24Hours + newUsersInADay;
+        uint256 totalRealUsersAndUploadUsers = numberOfRegisteredUsersIn_24Hours + numberOfOldUsersRegisteredIn_24Hour;
 
         if (totalBalancesIncludingOwner == 0) {
             todayReward = 0;
         } else {
-            todayReward = IERC20(tetherToken).balanceOf(address(this)) / totalBalancesIncludingOwner;
+            todayReward = ((80 ether) * totalRealUsersAndUploadUsers) / totalBalancesIncludingOwner;
         }
 
         return todayReward;
